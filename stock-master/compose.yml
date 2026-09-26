@@ -1,0 +1,51 @@
+## Entorno de ejemplo para Stock Master.
+##
+## Decisión de alcance:
+## Este archivo se mantendrá intencionalmente simple y su estado final incluirá
+## únicamente la aplicación y PostgreSQL. No se añadirá una pila completa de
+## observabilidad para evitar sobreingeniería en un proyecto demostrativo.
+##
+## La aplicación solo mostrará los conceptos de logging y tracing desde el
+## código. Loki y Tempo pueden mencionarse como posibles integraciones, pero no
+## se desplegarán aquí. Tampoco se incluirán métricas, Prometheus ni Grafana.
+#
+#services:
+#  # Base de datos usada por JPA en el caso de uso de ejemplo.
+#  database:
+#    image: postgres:17-alpine
+#    environment:
+#      # Credenciales únicamente para desarrollo local y demostraciones.
+#      # No deben utilizarse como secretos de producción.
+#      POSTGRES_DB: stockmaster
+#      POSTGRES_USER: stockmaster
+#      POSTGRES_PASSWORD: stockmaster
+#    volumes:
+#      # Conserva los datos aunque se vuelva a crear el contenedor.
+#      - postgres_data:/var/lib/postgresql/data
+#    healthcheck:
+#      # Permite iniciar la aplicación cuando PostgreSQL ya acepta conexiones.
+#      test: ["CMD-SHELL", "pg_isready -U stockmaster -d stockmaster"]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 10
+#
+#  # Aplicación que producirá los logs y las trazas del ejemplo.
+#  application:
+#    build: .
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      # En Compose se usa el nombre del servicio "database" como hostname.
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/stockmaster
+#      SPRING_DATASOURCE_USERNAME: stockmaster
+#      SPRING_DATASOURCE_PASSWORD: stockmaster
+#
+#      # Adecuado para una demostración; en producción conviene usar migraciones.
+#      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+#    depends_on:
+#      database:
+#        condition: service_healthy
+#
+## Volumen local de PostgreSQL para el caso de uso de demostración.
+#volumes:
+#  postgres_data:
