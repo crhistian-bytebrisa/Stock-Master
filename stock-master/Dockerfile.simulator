@@ -1,0 +1,12 @@
+FROM python:3.14-alpine
+
+WORKDIR /app
+
+COPY requirements-simulator.txt ./requirements.txt
+RUN pip install --no-cache-dir --requirement requirements.txt
+
+RUN addgroup -S simulator && adduser -S simulator -G simulator
+USER simulator
+
+EXPOSE 8000
+ENTRYPOINT ["python", "-u", "/app/simulate_demo.py"]
