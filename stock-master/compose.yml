@@ -32,10 +32,24 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-stockmaster}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-stockmaster}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      MANAGEMENT_TRACING_EXPORT_OTLP_ENABLED: "false"
+      MANAGEMENT_TRACING_EXPORT_OTLP_ENABLED: "true"
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://tempo:4318/v1/traces
     depends_on:
       database:
         condition: service_healthy
+      tempo:
+        condition: service_started
+
+  tempo:
+    image: grafana/tempo:3.0.3
+    restart: unless-stopped
+    command: -config.file=/etc/tempo/config.yml
+    ports:
+      - "${TEMPO_PORT:-3200}:3200"
+      - "${TEMPO_OTLP_HTTP_PORT:-4318}:4318"
+    volumes:
+      - ./observability/tempo/config.yml:/etc/tempo/config.yml:ro
+      - tempo_data:/var/tempo
 
   loki:
     image: grafana/loki:3.7.8
@@ -47,6 +61,20 @@ services:
       - ./observability/loki/config.yml:/etc/loki/config.yml:ro
       - loki_data:/loki
 
+  prometheus:
+    image: prom/prometheus:v3.5.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - application
 
   grafana:
     image: grafana/grafana:12.3.0
@@ -63,8 +91,12 @@ services:
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - loki
+      - prometheus
+      - tempo
 
 volumes:
   postgres_data:
   loki_data:
+  prometheus_data:
+  tempo_data:
   grafana_data:
