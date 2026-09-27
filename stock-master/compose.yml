@@ -1,0 +1,102 @@
+name: stock-master
+
+services:
+  database:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-stockmaster}
+      POSTGRES_USER: ${POSTGRES_USER:-stockmaster}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stockmaster}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  application:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: stock-master:local
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://database:5432/${POSTGRES_DB:-stockmaster}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-stockmaster}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-stockmaster}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      MANAGEMENT_TRACING_EXPORT_OTLP_ENABLED: "true"
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT: http://tempo:4318/v1/traces
+    depends_on:
+      database:
+        condition: service_healthy
+      tempo:
+        condition: service_started
+
+  tempo:
+    image: grafana/tempo:3.0.3
+    restart: unless-stopped
+    command: -config.file=/etc/tempo/config.yml
+    ports:
+      - "${TEMPO_PORT:-3200}:3200"
+      - "${TEMPO_OTLP_HTTP_PORT:-4318}:4318"
+    volumes:
+      - ./observability/tempo/config.yml:/etc/tempo/config.yml:ro
+      - tempo_data:/var/tempo
+
+  loki:
+    image: grafana/loki:3.7.8
+    restart: unless-stopped
+    command: -config.file=/etc/loki/config.yml
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./observability/loki/config.yml:/etc/loki/config.yml:ro
+      - loki_data:/loki
+
+  prometheus:
+    image: prom/prometheus:v3.5.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - application
+
+  grafana:
+    image: grafana/grafana:12.3.0
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - loki
+      - prometheus
+      - tempo
+
+volumes:
+  postgres_data:
+  loki_data:
+  prometheus_data:
+  tempo_data:
+  grafana_data:
