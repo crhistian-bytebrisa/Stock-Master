@@ -21,7 +21,15 @@
           "refId": "A"
         }
       ],
-      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "colorMode": "value"}
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "colorMode": "value"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "blue"}
+        },
+        "overrides": []
+      }
     },
     {
       "type": "bargauge",
@@ -36,7 +44,15 @@
           "refId": "A"
         }
       ],
-      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"}
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "blue"}
+        },
+        "overrides": []
+      }
     },
     {
       "type": "bargauge",
@@ -51,12 +67,29 @@
           "refId": "A"
         }
       ],
-      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"}
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {"mode": "thresholds"},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "blue", "value": 300},
+              {"color": "orange", "value": 400},
+              {"color": "dark-red", "value": 500}
+            ]
+          }
+        },
+        "overrides": []
+      }
     },
     {
       "type": "piechart",
       "title": "Peticiones por servicio/endpoint",
-      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 8},
+      "gridPos": {"h": 10, "w": 8, "x": 0, "y": 8},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {
@@ -69,9 +102,49 @@
       "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "pieType": "pie", "legendDisplayMode": "table"}
     },
     {
+      "type": "piechart",
+      "title": "Peticiones de la API por método HTTP",
+      "gridPos": {"h": 10, "w": 8, "x": 8, "y": 8},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [
+        {
+          "expr": "sum by (method) (count_over_time({app=\"stock-master\", logger=\"api.request\"} | json [$__range]))",
+          "queryType": "instant",
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {"mode": "palette-classic"},
+          "custom": {"lineWidth": 1}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "GET"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "green"}}]},
+          {"matcher": {"id": "byName", "options": "POST"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}]},
+          {"matcher": {"id": "byName", "options": "PUT"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "orange"}}]},
+          {"matcher": {"id": "byName", "options": "DELETE"}, "properties": [{"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}]}
+        ]
+      },
+      "options": {
+        "reduceOptions": {"values": true, "calcs": ["lastNotNull"], "fields": ""},
+        "pieType": "pie",
+        "displayLabels": ["name"],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true,
+          "values": ["value", "percent"]
+        },
+        "tooltip": {"mode": "single", "sort": "none"}
+      }
+    },
+    {
       "type": "bargauge",
       "title": "Conteo de registros en la base de datos",
-      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 8},
+      "gridPos": {"h": 10, "w": 8, "x": 16, "y": 8},
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "targets": [
         {
@@ -81,7 +154,15 @@
           "refId": "A"
         }
       ],
-      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"}
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {"mode": "fixed", "fixedColor": "purple"}
+        },
+        "overrides": []
+      }
     },
     {
       "type": "timeseries",
@@ -97,6 +178,38 @@
       ],
       "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "lineInterpolation": "smooth"}}},
       "options": {"tooltip": {"mode": "multi"}}
+    },
+    {
+      "type": "logs",
+      "title": "Logs de las peticiones a la API (Loki)",
+      "gridPos": {"h": 14, "w": 24, "x": 0, "y": 27},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [
+        {
+          "expr": "{app=\"stock-master\", logger=\"api.request\"} | json",
+          "refId": "A",
+          "queryType": "range",
+          "direction": "backward",
+          "maxLines": 500
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending",
+        "direction": "backward"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "durationMs"}, "properties": [{"id": "unit", "value": "ms"}]}
+        ]
+      }
     }
   ],
   "refresh": "10s",

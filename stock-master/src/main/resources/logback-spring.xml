@@ -12,14 +12,25 @@
             app=stock-master
             host=${HOSTNAME}
             level=%level
+            logger=%logger
         </labels>
         <message>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %m%n</pattern>
+            <pattern>%m%n</pattern>
         </message>
         <http>
             <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
         </http>
+        <batch>
+            <maxItems>100</maxItems>
+            <timeoutMs>1000</timeoutMs>
+        </batch>
     </appender>
+
+    <!-- Logs de negocio de la API en JSON, sin prefijo para poder parsearlos en Loki -->
+    <logger name="api.request" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+    </logger>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
