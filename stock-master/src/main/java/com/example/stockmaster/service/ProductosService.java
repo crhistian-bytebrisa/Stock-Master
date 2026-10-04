@@ -2,7 +2,6 @@ package com.example.stockmaster.service;
 
 import com.example.stockmaster.dto.ProductosRequest;
 import com.example.stockmaster.dto.ProductosResponse;
-import com.example.stockmaster.exception.BusinessException;
 import com.example.stockmaster.exception.ResourceNotFoundException;
 import com.example.stockmaster.mapper.ProductosMapper;
 import com.example.stockmaster.model.Productos;
@@ -19,9 +18,6 @@ public class ProductosService {
     public ProductosService(ProductosRepository repository) { this.repository = repository; }
 
     public ProductosResponse crear(ProductosRequest request) {
-        if (repository.existsById(request.id())) {
-            throw new BusinessException("Ya existe el producto " + request.id());
-        }
         return ProductosMapper.toResponse(repository.save(aplicar(new Productos(), request, true)));
     }
 
@@ -34,7 +30,6 @@ public class ProductosService {
     public ProductosResponse buscar(String id) { return ProductosMapper.toResponse(obtener(id)); }
 
     public ProductosResponse actualizar(String id, ProductosRequest request) {
-        if (!id.equals(request.id())) throw new BusinessException("El id del producto no se puede modificar");
         return ProductosMapper.toResponse(repository.save(aplicar(obtener(id), request, false)));
     }
 
@@ -45,7 +40,7 @@ public class ProductosService {
     }
 
     private Productos aplicar(Productos value, ProductosRequest request, boolean nuevo) {
-        if (nuevo) value.setId(request.id().trim());
+        if (nuevo) value.setId(java.util.UUID.randomUUID().toString());
         value.setNombre(request.nombre().trim());
         value.setDescripcion(request.descripcion());
         value.setPrecioCompra(request.precioCompra());

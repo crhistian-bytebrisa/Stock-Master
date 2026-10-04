@@ -47,21 +47,21 @@ class StockMasterApplicationTests {
     void flujoRestockGapYTraspaso() {
         var origen = sucursalService.crear(new SucursalRequest("CENTRO", "Centro", null, true));
         var destino = sucursalService.crear(new SucursalRequest("NORTE", "Norte", null, true));
-        productosService.crear(new ProductosRequest("P-001", "Filtro", "Filtro de aceite",
+        var producto = productosService.crear(new ProductosRequest("Filtro", "Filtro de aceite",
                 new BigDecimal("10.00"), new BigDecimal("15.00")));
-        inventarioService.crear(new InventarioRequest(origen.id(), "P-001", 0));
-        inventarioService.crear(new InventarioRequest(destino.id(), "P-001", 0));
+        inventarioService.crear(new InventarioRequest(origen.id(), producto.id(), 0));
+        inventarioService.crear(new InventarioRequest(destino.id(), producto.id(), 0));
         var ppto = pptoService.crear(new PPTORequest(new BigDecimal("150.00"), LocalDate.now()));
 
         var orden = ordenService.crear(new OrdenDeRestockRequest(origen.id(), ppto.id(),
-                List.of(new RepuestoRequest("P-001", 10, new BigDecimal("12.00"))),
+                List.of(new RepuestoRequest(producto.id(), 10, new BigDecimal("12.00"))),
                 null, EstadoRestock.RECIBIDA));
         var gap = gapService.crear(new GAPRequest(orden.id()));
 
         assertThat(orden.costoTotal()).isEqualByComparingTo("120.00");
         assertThat(gap.diferencia()).isEqualByComparingTo("30.00");
 
-        traspasoService.crear(new TraspasoRequest(origen.id(), destino.id(), "P-001", 4,
+        traspasoService.crear(new TraspasoRequest(origen.id(), destino.id(), producto.id(), 4,
                 null, EstadoTraspaso.COMPLETADO));
         assertThat(inventarioService.listar()).extracting("cantidad").containsExactlyInAnyOrder(6, 4);
     }

@@ -1,0 +1,113 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "preload": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Total de peticiones HTTP",
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {
+          "expr": "sum(http_server_requests_seconds_count)",
+          "instant": true,
+          "legendFormat": "total",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "colorMode": "value"}
+    },
+    {
+      "type": "bargauge",
+      "title": "Peticiones por método HTTP",
+      "gridPos": {"h": 8, "w": 9, "x": 6, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {
+          "expr": "sum by (method) (http_server_requests_seconds_count)",
+          "instant": true,
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"}
+    },
+    {
+      "type": "bargauge",
+      "title": "Peticiones por código de estado (200, 201, 400, 500...)",
+      "gridPos": {"h": 8, "w": 9, "x": 15, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {
+          "expr": "sum by (status) (http_server_requests_seconds_count)",
+          "instant": true,
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"}
+    },
+    {
+      "type": "piechart",
+      "title": "Peticiones por servicio/endpoint",
+      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {
+          "expr": "sum by (uri) (http_server_requests_seconds_count)",
+          "instant": true,
+          "legendFormat": "{{uri}}",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "pieType": "pie", "legendDisplayMode": "table"}
+    },
+    {
+      "type": "bargauge",
+      "title": "Conteo de registros en la base de datos",
+      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {
+          "expr": "stockmaster_registros",
+          "instant": true,
+          "legendFormat": "{{entidad}}",
+          "refId": "A"
+        }
+      ],
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"]}, "orientation": "horizontal", "displayMode": "lcd"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Peticiones por método en el tiempo",
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 18},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {
+          "expr": "sum by (method) (rate(http_server_requests_seconds_count[5m]))",
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "lineInterpolation": "smooth"}}},
+      "options": {"tooltip": {"mode": "multi"}}
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["stock-master"],
+  "templating": {"list": []},
+  "time": {"from": "now-15m", "to": "now"},
+  "timepicker": {},
+  "timezone": "",
+  "title": "Stock Master - Observabilidad",
+  "uid": "stock-master",
+  "version": 1,
+  "weekStart": ""
+}
