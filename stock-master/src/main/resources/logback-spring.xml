@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %5p ${PID:- } --- [%15.15t] %-40.40logger{39} : %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <labels>
+            app=stock-master
+            host=${HOSTNAME}
+            level=%level
+            logger=%logger
+        </labels>
+        <message>
+            <pattern>%m%n</pattern>
+        </message>
+        <http>
+            <url>${LOKI_URL:-http://loki:3100/loki/api/v1/push}</url>
+        </http>
+        <batch>
+            <maxItems>100</maxItems>
+            <timeoutMs>1000</timeoutMs>
+        </batch>
+    </appender>
+
+    <!-- Logs de negocio de la API en JSON, sin prefijo para poder parsearlos en Loki -->
+    <logger name="api.request" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="LOKI"/>
+    </root>
+</configuration>
