@@ -6,7 +6,7 @@
   "id": null,
   "links": [],
   "liveNow": false,
-  "preload": false,
+  "preload": true,
   "panels": [
     {
       "type": "stat",
@@ -210,12 +210,101 @@
           {"matcher": {"id": "byName", "options": "durationMs"}, "properties": [{"id": "unit", "value": "ms"}]}
         ]
       }
+    },
+    {
+      "type": "traces",
+      "title": "Waterfall de la traza (estilo Grafana Explore)",
+      "description": "Diagrama 1: la traza abierta como cascada de spans, tal cual la muestra Grafana en Explore. Hacé click en una celda de la tabla de arriba y esta traza se carga acá. El queryType debe ser traceql: el frontend de Grafana no tiene rama para traceId y no dispararia la consulta.",
+      "gridPos": {"h": 12, "w": 14, "x": 0, "y": 49},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "$traza"
+        }
+      ],
+      "options": {"spanFilters": {"criticalPathOnly": false, "matchesOnly": false, "serviceNameOperator": "=", "spanNameOperator": "=", "tags": []}}
+    },
+    {
+      "type": "nodeGraph",
+      "title": "Grafo de la traza (nodos y flechas)",
+      "description": "Diagrama 2: los mismos spans como nodos con flechas de padre a hijo. Necesita el flag nodeGraph.enabled en la datasource Tempo. Se alimenta de la misma variable $traza.",
+      "gridPos": {"h": 12, "w": 10, "x": 14, "y": 49},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "$traza"
+        }
+      ],
+      "options": {}
+    },
+    {
+      "type": "table",
+      "title": "Trazas de las peticiones a la API (seleccionar una)",
+      "description": "Lista de trazas. El filtro /api/.* es obligatorio: sin el, 19 de cada 20 trazas son el scrape de Prometheus a /actuator/prometheus. Hacé click en cualquier celda para cargar esa traza en el waterfall y en el grafo.",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 41},
+      "datasource": {"type": "tempo", "uid": "tempo"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "tempo", "uid": "tempo"},
+          "queryType": "traceql",
+          "query": "{ resource.service.name = \"stock-master\" && span.uri =~ \"/api/.*\" }",
+          "tableType": "traces",
+          "limit": 20
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"nested": true},
+            "indexByName": {"traceID": 0, "traceService": 1, "traceName": 2, "traceDuration": 3, "startTime": 4}
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {"align": "auto", "filterable": false},
+          "links": [
+            {
+              "title": "Ver waterfall y grafo",
+              "url": "/d/stock-master/stock-master-observabilidad?var-traza=${__data.fields.traceID}&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "traceDuration"}, "properties": [{"id": "unit", "value": "ms"}]}
+        ]
+      },
+      "options": {"showHeader": true, "cellHeight": "sm"}
     }
   ],
   "refresh": "10s",
   "schemaVersion": 41,
   "tags": ["stock-master"],
-  "templating": {"list": []},
+  "templating": {
+    "list": [
+      {
+        "name": "traza",
+        "label": "Trace ID a inspeccionar",
+        "type": "custom",
+        "query": "",
+        "options": [],
+        "current": {"selected": true, "text": "", "value": ""},
+        "includeAll": false,
+        "multi": false,
+        "hide": 0,
+        "skipUrlSync": false
+      }
+    ]
+  },
   "time": {"from": "now-15m", "to": "now"},
   "timepicker": {},
   "timezone": "",

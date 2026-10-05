@@ -18,3 +18,8 @@ datasources:
     access: proxy
     url: http://tempo:3200
     editable: false
+    jsonData:
+      # Sin esto el panel Node graph no dibuja nada: Grafana solo transforma la
+      # traza a nodos y aristas cuando la datasource tiene el node graph activo.
+      nodeGraph:
+        enabled: true
